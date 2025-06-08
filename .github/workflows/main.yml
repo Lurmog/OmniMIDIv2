@@ -12,19 +12,22 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Setup MSYS2 & MinGW‑w64
-      uses: msys2/setup-msys2@v2
-      with:
-        update: true
-        install: mingw-w64-x86_64-toolchain
-
+    - name: Download and extract w64devkit
+      run: |
+        curl -L -o w64devkit.exe https://github.com/skeeto/w64devkit/releases/download/v2.2.0/w64devkit-x64-2.2.0.7z.exe
+        mkdir w64devkit
+        ./w64devkit.exe -y > NUL
+        
+    - name: Add w64devkit to PATH
+      run: echo "${{ github.workspace }}/w64devkit" >> $GITHUB_PATH
+      
     - name: Setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
 
     - name: Configure & Build with xmake (MINGW64)
       run: |
         cd OmniMIDI
-        xmake f -p windows --toolchain=mingw --mingw=C:/msys64/mingw64 --nonfree=yes
+        xmake f -p windows --toolchain=mingw --mingw=${{ github.workspace }}/w64devkit --nonfree=yes
         xmake
 
     - name: Download bass.dll (x64) and bassmidi.dll (x64)
