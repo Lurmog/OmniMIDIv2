@@ -16,9 +16,7 @@ jobs:
       uses: msys2/setup-msys2@v2
       with:
         update: true
-        install: >-
-          mingw-w64-x86_64-toolchain
-          base-devel
+        install: mingw-w64-x86_64-toolchain
 
     - name: Setup xmake
       uses: xmake-io/github-action-setup-xmake@v1
@@ -26,7 +24,7 @@ jobs:
     - name: Configure & Build with xmake (MINGW64)
       run: |
         cd OmniMIDI
-        xmake f --mingw=C:/msys64/mingw64 --nonfree=yes
+        xmake f -p windows --toolchain=mingw --mingw=C:/msys64/mingw64 --nonfree=yes
         xmake
 
     - name: Download bass.dll (x64) and bassmidi.dll (x64)
