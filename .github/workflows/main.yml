@@ -24,10 +24,9 @@ jobs:
       uses: xmake-io/github-action-setup-xmake@v1
 
     - name: Configure & Build with xmake (MINGW64)
-      shell: msys2 {0}
       run: |
         cd OmniMIDI
-        xmake f --mingw=/mingw64 --nonfree=yes
+        xmake f --mingw=C:/msys64/mingw64 --nonfree=yes
         xmake
 
     - name: Download bass.dll (x64) and bassmidi.dll (x64)
@@ -43,14 +42,14 @@ jobs:
 
     - name: Zip build directory
       run: |
-        powershell Compress-Archive -Path OmniMIDI/build/windows/x86_64/* -DestinationPath OmniMIDI-x64-latest.zip
+        powershell Compress-Archive -Path OmniMIDI/build/windows/x86_64/* -DestinationPath OmniMIDI-x64.zip
 
     - name: Create or Update "latest" GitHub Release
       uses: softprops/action-gh-release@v1
       with:
         tag_name: latest
         name: Latest OmniMIDI Build
-        files: OmniMIDI-x64-latest.zip
+        files: OmniMIDI-x64.zip
         overwrite: true
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
