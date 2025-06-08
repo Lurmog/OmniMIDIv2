@@ -1,0 +1,56 @@
+name: Auto-Build & Release Latest OmniMIDI
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Setup MSYS2 & MinGW‑w64
+      uses: msys2/setup-msys2@v2
+      with:
+        update: true
+        install: >-
+          mingw-w64-x86_64-toolchain
+          base-devel
+
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+
+    - name: Configure & Build with xmake (MINGW64)
+      shell: msys2 {0}
+      run: |
+        cd OmniMIDI
+        xmake f --mingw=/mingw64 --nonfree=yes
+        xmake
+
+    - name: Download bass.dll (x64) and bassmidi.dll (x64)
+      run: |
+        curl -L -o bass24.zip https://www.un4seen.com/files/bass24.zip
+        curl -L -o bassmidi24.zip https://www.un4seen.com/files/bassmidi24.zip
+        curl -L -o bassflac24.zip https://www.un4seen.com/files/bassflac24.zip
+        curl -L -o basswasapi24.zip https://www.un4seen.com/files/basswasapi24.zip
+        unzip -j bass24.zip "bass24/x64/bass.dll" -d OmniMIDI/build/windows/x86_64
+        unzip -j bassmidi24.zip "bassmidi24/x64/bassmidi.dll" -d OmniMIDI/build/windows/x86_64
+        unzip -j bassflac24.zip "bassflac24/x64/bassflac.dll" -d OmniMIDI/build/windows/x86_64
+        unzip -j basswasapi24.zip "basswasapi24/x64/basswasapi.dll" -d OmniMIDI/build/windows/x86_64
+
+    - name: Zip build directory
+      run: |
+        powershell Compress-Archive -Path OmniMIDI/build/windows/x86_64/* -DestinationPath OmniMIDI-x64-latest.zip
+
+    - name: Create or Update "latest" GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: latest
+        name: Latest OmniMIDI Build
+        files: OmniMIDI-x64-latest.zip
+        overwrite: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
