@@ -1,0 +1,69 @@
+name: OmniMIDI Windows Build
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-release:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v3
+
+    - name: Download and extract w64devkit
+      run: |
+        curl -L -o w64devkit.exe https://github.com/skeeto/w64devkit/releases/download/v2.2.0/w64devkit-x64-2.2.0.7z.exe
+        mkdir w64devkit
+        ./w64devkit.exe -y > NUL
+        
+    - name: Add w64devkit to PATH
+      run: echo "${{ github.workspace }}/w64devkit" >> $GITHUB_PATH
+      
+    - name: Setup xmake
+      uses: xmake-io/github-action-setup-xmake@v1
+
+    - name: Configure & Build with xmake (MINGW64)
+      run: |
+        cd OmniMIDI
+        xmake f -p windows --toolchain=mingw --mingw=${{ github.workspace }}/w64devkit --nonfree=yes
+        xmake -v
+        tree
+
+    - name: Download lib bin
+      run: |
+        curl -L -o bass24.zip https://www.un4seen.com/files/bass24.zip
+        curl -L -o bassmidi24.zip https://www.un4seen.com/files/bassmidi24.zip
+        curl -L -o bassflac24.zip https://www.un4seen.com/files/bassflac24.zip
+        curl -L -o bassasio14.zip https://www.un4seen.com/files/bassasio14.zip
+        curl -L -o basswasapi24.zip https://www.un4seen.com/files/basswasapi24.zip
+        curl -L -o bass_fx24.zip https://www.un4seen.com/files/z/0/bass_fx24.zip
+        
+        curl -L -o fluidsynth-2.4.6-win10-x64.zip https://github.com/FluidSynth/fluidsynth/releases/download/v2.4.6/fluidsynth-2.4.6-win10-x64.zip
+        
+        curl -L -o OmniMIDI/build/windows/x64/release/xsynth.dll https://github.com/BlackMIDIDevs/xsynth/releases/download/0.3.3/xsynth-windows-x64.dll
+        
+        unzip -j bass24.zip "x64/bass.dll" -d OmniMIDI/build/windows/x64/release
+        unzip -j bassmidi24.zip "x64/bassmidi.dll" -d OmniMIDI/build/windows/x64/release
+        unzip -j bassflac24.zip "x64/bassflac.dll" -d OmniMIDI/build/windows/x64/release
+        unzip -j bassasio14.zip "x64/bassasio.dll" -d OmniMIDI/build/windows/x64/release
+        unzip -j basswasapi24.zip "x64/basswasapi.dll" -d OmniMIDI/build/windows/x64/release
+        unzip -j bass_fx24.zip "x64/bass_fx.dll" -d OmniMIDI/build/windows/x64/release
+        
+        unzip -j fluidsynth-2.4.6-win10-x64.zip "bin/*.dll" -d OmniMIDI/build/windows/x64/release
+
+    - name: Zip build directory
+      run: |
+        powershell Compress-Archive -Path OmniMIDI/build/windows/x64/release/* -DestinationPath OmniMIDI-win32-x64.zip
+        tree
+
+    - name: Create or Update "latest" GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: latest
+        name: OmniMIDI Windows Build
+        files: OmniMIDI-win32-x64.zip
+        overwrite: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
